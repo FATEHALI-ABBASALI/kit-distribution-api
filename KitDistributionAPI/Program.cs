@@ -1,4 +1,4 @@
-﻿using KitDistributionAPI.Data;
+using KitDistributionAPI.Data;
 using KitDistributionAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -12,17 +12,19 @@ var builder = WebApplication.CreateBuilder(args);
 // ===============================
 builder.Services.AddControllers();
 
+
 // ===============================
 // DATABASE (MySQL)
 // ===============================
+var connectionString = builder.Configuration.GetConnectionString("MySql");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
-        builder.Configuration.GetConnectionString("MySql"),
-        ServerVersion.AutoDetect(
-            builder.Configuration.GetConnectionString("MySql")
-        )
+        connectionString,
+        ServerVersion.AutoDetect(connectionString)
     )
 );
+
 
 // ===============================
 // SERVICES
@@ -30,31 +32,35 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<QrCodeService>();
 
+
 // ===============================
 // JWT AUTHENTICATION
 // ===============================
 var jwtKey = "THIS_IS_SUPER_SECRET_KEY_FOR_KIT_DISTRIBUTION_2026";
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-.AddJwtBearer(opt =>
-{
-    opt.TokenValidationParameters = new TokenValidationParameters
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(opt =>
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey =
-            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-    };
-});
+        opt.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey =
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+    });
+
 
 // ===============================
 // AUTHORIZATION
 // ===============================
 builder.Services.AddAuthorization();
 
+
 // ===============================
-// CORS (ALLOW MOBILE)
+// CORS (ALLOW MOBILE / FRONTEND)
 // ===============================
 builder.Services.AddCors(o =>
 {
@@ -65,7 +71,12 @@ builder.Services.AddCors(o =>
     );
 });
 
+
+// ===============================
+// BUILD APP
+// ===============================
 var app = builder.Build();
+
 
 // ===============================
 // MIDDLEWARE ORDER
@@ -77,4 +88,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+
+// ===============================
+// 🚀 RAILWAY PORT BINDING (IMPORTANT)
+// ===============================
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+app.Run($"http://0.0.0.0:{port}");
