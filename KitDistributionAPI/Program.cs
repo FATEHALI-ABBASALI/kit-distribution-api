@@ -8,10 +8,6 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // ===============================
-// LISTEN ON ALL IPs (🔥 REQUIRED FOR MOBILE)
-// ===============================
-
-// ===============================
 // CONTROLLERS
 // ===============================
 builder.Services.AddControllers();
@@ -72,7 +68,7 @@ builder.Services.AddCors(o =>
 var app = builder.Build();
 
 // ===============================
-// MIDDLEWARE ORDER (IMPORTANT)
+// MIDDLEWARE ORDER
 // ===============================
 app.UseCors("AllowAll");
 

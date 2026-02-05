@@ -25,12 +25,16 @@ namespace KitDistributionAPI.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginDto dto)
         {
-            if (dto == null || string.IsNullOrEmpty(dto.Username) || string.IsNullOrEmpty(dto.Password))
-                return BadRequest("Username and password are required");
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password))
+            {
+                return BadRequest(new { message = "Username and password are required" });
+            }
+
+            string username = dto.Username.Trim();
 
             // ================= ADMIN LOGIN =================
             var admin = _db.Admins
-                .FirstOrDefault(x => x.FullName == dto.Username);
+                .FirstOrDefault(x => x.FullName.ToLower() == username.ToLower());
 
             if (admin != null && BCrypt.Net.BCrypt.Verify(dto.Password, admin.Password))
             {
@@ -43,7 +47,7 @@ namespace KitDistributionAPI.Controllers
 
             // ================= TERMINAL LOGIN =================
             var terminal = _db.TerminalUsers
-                .FirstOrDefault(x => x.Terminal_ID == dto.Username);
+                .FirstOrDefault(x => x.Terminal_ID == username);
 
             if (terminal != null && BCrypt.Net.BCrypt.Verify(dto.Password, terminal.Password))
             {
@@ -56,7 +60,7 @@ namespace KitDistributionAPI.Controllers
 
             // ================= BENEFICIARY LOGIN =================
             var ben = _db.Beneficiaries
-                .FirstOrDefault(x => x.Beneficiary_ID == dto.Username);
+                .FirstOrDefault(x => x.Beneficiary_ID == username);
 
             if (ben != null && BCrypt.Net.BCrypt.Verify(dto.Password, ben.Password))
             {
@@ -68,7 +72,7 @@ namespace KitDistributionAPI.Controllers
             }
 
             // ================= INVALID =================
-            return Unauthorized("Invalid credentials");
+            return Unauthorized(new { message = "Invalid username or password" });
         }
     }
 }
