@@ -1,22 +1,20 @@
-# ---------- BUILD STAGE ----------
+# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /app
+WORKDIR /src
 
-# copy csproj explicitly
-COPY KitDistributionAPI.csproj ./
-RUN dotnet restore KitDistributionAPI.csproj
+# Copy project file
+COPY KitDistributionAPI/KitDistributionAPI.csproj KitDistributionAPI/
+RUN dotnet restore KitDistributionAPI/KitDistributionAPI.csproj
 
-# copy rest of source
+# Copy everything else
 COPY . .
-RUN dotnet publish KitDistributionAPI.csproj -c Release -o out
+WORKDIR /src/KitDistributionAPI
+RUN dotnet publish -c Release -o /app/publish
 
-# ---------- RUNTIME STAGE ----------
+# Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
-
-COPY --from=build /app/out .
-
-ENV ASPNETCORE_URLS=http://0.0.0.0:8080
+COPY --from=build /app/publish .
 EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "KitDistributionAPI.dll"]
