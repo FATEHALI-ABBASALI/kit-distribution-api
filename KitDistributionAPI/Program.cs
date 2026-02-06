@@ -45,37 +45,35 @@ builder.Services
 builder.Services.AddAuthorization();
 
 
-// ✅ FINAL CORS CONFIG (for React + future live site)
+// 🔥🔥🔥 CORRECT CORS CONFIGURATION
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReact",
+    options.AddPolicy("AllowFrontend",
         policy =>
         {
             policy
-                .WithOrigins(
-                    "http://localhost:3000",
-                    "https://localhost:3000"
-                )
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .SetIsOriginAllowed(_ => true); // allow Railway + localhost + APK
         });
 });
 
 var app = builder.Build();
 
 
-// Swagger enabled on Railway
+// Swagger
 app.UseSwagger();
 app.UseSwaggerUI();
 
 
-// ✅ Correct middleware order
-app.UseCors("AllowReact");   // MUST be before auth
+// 🔥 IMPORTANT MIDDLEWARE ORDER
+app.UseCors("AllowFrontend");   // must be BEFORE auth
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 
-// ✅ FINAL — Railway handles HTTPS + PORT automatically
-app.Run();
+// 🔥 Railway PORT binding (REQUIRED)
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+app.Run($"http://0.0.0.0:{port}");
