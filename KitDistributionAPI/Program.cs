@@ -44,28 +44,38 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-// CORS (ALLOW REACT LOCALHOST)
-builder.Services.AddCors(o =>
+
+// ✅ FINAL CORS CONFIG (for React + future live site)
+builder.Services.AddCors(options =>
 {
-    o.AddPolicy("AllowAll", p =>
-        p.AllowAnyOrigin()
-         .AllowAnyHeader()
-         .AllowAnyMethod());
+    options.AddPolicy("AllowReact",
+        policy =>
+        {
+            policy
+                .WithOrigins(
+                    "http://localhost:3000",
+                    "https://localhost:3000"
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
 });
 
 var app = builder.Build();
 
-// Swagger (enabled on Railway)
+
+// Swagger enabled on Railway
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// Correct middleware order
-app.UseHttpsRedirection();
-app.UseCors("AllowAll");
+
+// ✅ Correct middleware order
+app.UseCors("AllowReact");   // MUST be before auth
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-// ✅ FINAL — let Railway handle port automatically
+
+// ✅ FINAL — Railway handles HTTPS + PORT automatically
 app.Run();
