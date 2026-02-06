@@ -16,28 +16,24 @@ namespace KitDistributionAPI.Services
 
         public string GenerateToken(string userId, string role)
         {
-            var key = _config["Jwt:Key"];
-            var issuer = _config["Jwt:Issuer"];
-            var audience = _config["Jwt:Audience"];
-
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, userId),
                 new Claim(ClaimTypes.Role, role)
             };
 
-            var securityKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(key)
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_config["Jwt:Key"])
             );
 
             var creds = new SigningCredentials(
-                securityKey,
+                key,
                 SecurityAlgorithms.HmacSha256
             );
 
             var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
+                issuer: _config["Jwt:Issuer"],
+                audience: _config["Jwt:Audience"],
                 claims: claims,
                 expires: DateTime.Now.AddHours(5),
                 signingCredentials: creds
