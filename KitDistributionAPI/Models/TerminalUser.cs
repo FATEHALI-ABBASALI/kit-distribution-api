@@ -2,6 +2,7 @@
 
 namespace KitDistributionAPI.Models
 {
+     [Table("terminalusers")] 
     public class TerminalUser
     {
         [Key]
