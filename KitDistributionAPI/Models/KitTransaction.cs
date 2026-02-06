@@ -2,6 +2,7 @@
 
 namespace KitDistributionAPI.Models
 {
+    [Table("kittransactions")]
     public class KitTransaction
     {
         [Key]
