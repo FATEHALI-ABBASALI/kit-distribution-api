@@ -3,7 +3,6 @@ using KitDistributionAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,7 +44,7 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-// CORS
+// CORS (ALLOW REACT LOCALHOST)
 builder.Services.AddCors(o =>
 {
     o.AddPolicy("AllowAll", p =>
@@ -56,18 +55,17 @@ builder.Services.AddCors(o =>
 
 var app = builder.Build();
 
-// Swagger in all environments
+// Swagger (enabled on Railway)
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// 🔥 IMPORTANT middleware order
-app.UseHttpsRedirection();     // <-- REQUIRED on Railway
-app.UseCors("AllowAll");       // <-- CORS before auth
+// Correct middleware order
+app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-// Railway PORT binding
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-app.Run($"http://0.0.0.0:{port}");
+// ✅ FINAL — let Railway handle port automatically
+app.Run();
