@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers
 builder.Services.AddControllers();
 
-// Swagger (IMPORTANT for testing on Railway)
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -56,17 +56,18 @@ builder.Services.AddCors(o =>
 
 var app = builder.Build();
 
-// Enable Swagger in ALL environments (important for Railway)
+// Swagger in all environments
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// Middleware
-app.UseCors("AllowAll");
+// 🔥 IMPORTANT middleware order
+app.UseHttpsRedirection();     // <-- REQUIRED on Railway
+app.UseCors("AllowAll");       // <-- CORS before auth
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-// Railway PORT binding (CRITICAL)
+// Railway PORT binding
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Run($"http://0.0.0.0:{port}");
