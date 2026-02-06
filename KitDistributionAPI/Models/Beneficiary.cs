@@ -2,6 +2,7 @@
 
 namespace KitDistributionAPI.Models
 {
+    [Table("beneficiaries")]
     public class Beneficiary
     {
         [Key]
