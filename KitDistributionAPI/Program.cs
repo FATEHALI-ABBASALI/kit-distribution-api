@@ -3,6 +3,7 @@ using KitDistributionAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,23 +11,27 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers
 builder.Services.AddControllers();
 
-// Swagger
+
+// ================= SWAGGER =================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Database (MySQL)
+
+// ================= DATABASE =================
 var connectionString = builder.Configuration.GetConnectionString("MySql");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 
-// Services
+
+// ================= SERVICES =================
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<QrCodeService>();
 
-// JWT Authentication
-var jwtKey = "THIS_IS_SUPER_SECRET_KEY_FOR_KIT_DISTRIBUTION_2026";
+
+// ================= JWT AUTH =================
+var jwtKey = builder.Configuration["Jwt:Key"];
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -34,9 +39,13 @@ builder.Services
     {
         opt.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = false,
-            ValidateAudience = false,
+            ValidateIssuer = true,
+            ValidateAudience = true,
             ValidateIssuerSigningKey = true,
+
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+
             IssuerSigningKey =
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
@@ -45,35 +54,41 @@ builder.Services
 builder.Services.AddAuthorization();
 
 
-// 🔥🔥🔥 CORRECT CORS CONFIGURATION
+// ================= CORS (IMPORTANT) =================
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend",
-        policy =>
-        {
-            policy
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .SetIsOriginAllowed(_ => true); // allow Railway + localhost + APK
-        });
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy
+            .WithOrigins(
+                "http://localhost:3000",
+                "https://localhost:3000"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
 });
+
 
 var app = builder.Build();
 
 
-// Swagger
+// ================= SWAGGER =================
 app.UseSwagger();
 app.UseSwaggerUI();
 
 
-// 🔥 IMPORTANT MIDDLEWARE ORDER
-app.UseCors("AllowFrontend");   // must be BEFORE auth
+// ================= MIDDLEWARE ORDER (CRITICAL) =================
+app.UseRouting();
+
+app.UseCors("AllowFrontend");   // ⭐ MUST be before auth
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 
-// 🔥 Railway PORT binding (REQUIRED)
+// ================= RAILWAY PORT =================
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Run($"http://0.0.0.0:{port}");
