@@ -8,72 +8,42 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ================= CONTROLLERS =================
+// Controllers
 builder.Services.AddControllers();
 
-// ================= SWAGGER =================
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Kit Distribution API", Version = "v1" });
+builder.Services.AddSwaggerGen();
 
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Enter: Bearer {token}"
-    });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[] {}
-        }
-    });
-});
-
-// ================= DATABASE =================
+// Database
 var connectionString = builder.Configuration.GetConnectionString("MySql");
-
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 
-// ================= SERVICES =================
+// Services
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<QrCodeService>();
 
-// ================= JWT =================
+// JWT
 var jwtKey = builder.Configuration["Jwt:Key"];
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+    .AddJwtBearer(opt =>
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtKey!)
-        )
-    };
-});
+        opt.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey!)
+            )
+        };
+    });
 
 builder.Services.AddAuthorization();
 
-// ================= CORS =================
+// CORS allow all
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -84,7 +54,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// ================= MIDDLEWARE =================
 app.UseSwagger();
 app.UseSwaggerUI();
 
@@ -95,6 +64,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// ⭐ IMPORTANT FOR RAILWAY
+/* 🔥 MOST IMPORTANT LINE FOR RAILWAY */
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Run($"http://0.0.0.0:{port}");
