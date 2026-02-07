@@ -55,22 +55,18 @@ builder.Services.AddAuthorization();
 
 
 // ================= CORS (IMPORTANT) =================
+// ================= CORS (ALLOW ALL FOR APK) =================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .WithOrigins(
-                "http://localhost:3000",
-                "https://localhost:3000"
-            )
+            .AllowAnyOrigin()     // ⭐ IMPORTANT
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
 });
 
-
-var app = builder.Build();
 
 
 // ================= SWAGGER =================
@@ -81,7 +77,7 @@ app.UseSwaggerUI();
 // ================= MIDDLEWARE ORDER (CRITICAL) =================
 app.UseRouting();
 
-app.UseCors("AllowFrontend");   // ⭐ MUST be before auth
+app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();
