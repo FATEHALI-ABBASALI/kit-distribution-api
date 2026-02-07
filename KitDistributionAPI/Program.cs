@@ -21,7 +21,6 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1"
     });
 
-    // JWT support in Swagger
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -29,7 +28,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Enter JWT token like: Bearer {your_token}"
+        Description = "Enter JWT token like: Bearer {token}"
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -52,10 +51,7 @@ builder.Services.AddSwaggerGen(options =>
 var connectionString = builder.Configuration.GetConnectionString("MySql");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(
-        connectionString,
-        ServerVersion.AutoDetect(connectionString)
-    )
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 
 // ================= SERVICES =================
@@ -70,11 +66,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
+            ValidateIssuer = false,
+            ValidateAudience = false,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwtKey!)
             )
@@ -83,18 +77,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// ================= CORS =================
+// ================= CORS (ALLOW ALL FOR APK) =================
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy
-            .WithOrigins(
-                "http://localhost:3000",
-                "https://localhost:3000"
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
 
@@ -104,17 +94,17 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// ================= MIDDLEWARE ORDER =================
+// ================= MIDDLEWARE =================
 app.UseRouting();
 
-app.UseCors("AllowFrontend");
+app.UseCors("AllowAll");
 
-// MUST be before Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-// ================= PORT (Railway / Render / Fly.io) =================
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-app.Run($"http://0.0.0.0:{port}");
+// ================= IMPORTANT FOR RAILWAY HTTPS =================
+app.Urls.Add("http://0.0.0.0:8080");
+
+app.Run();
