@@ -3,7 +3,6 @@ using KitDistributionAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,26 +10,22 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers
 builder.Services.AddControllers();
 
-
-// ================= SWAGGER =================
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
-// ================= DATABASE =================
+// Database
 var connectionString = builder.Configuration.GetConnectionString("MySql");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 
-
-// ================= SERVICES =================
+// Services
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<QrCodeService>();
 
-
-// ================= JWT AUTH =================
+// JWT Auth
 var jwtKey = builder.Configuration["Jwt:Key"];
 
 builder.Services
@@ -53,38 +48,34 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-
-// ================= CORS (IMPORTANT) =================
-// ================= CORS (ALLOW ALL FOR APK) =================
+// CORS → allow APK + web
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
         policy
-            .AllowAnyOrigin()     // ⭐ IMPORTANT
+            .AllowAnyOrigin()
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
 });
 
+var app = builder.Build();   // ⭐ VERY IMPORTANT
 
-
-// ================= SWAGGER =================
+// Swagger
 app.UseSwagger();
 app.UseSwaggerUI();
 
-
-// ================= MIDDLEWARE ORDER (CRITICAL) =================
+// Middleware order
 app.UseRouting();
 
-app.UseCors("AllowAll");
+app.UseCors("AllowAll");     // ⭐ SAME NAME AS ABOVE
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-
-// ================= RAILWAY PORT =================
+// Railway port
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Run($"http://0.0.0.0:{port}");
