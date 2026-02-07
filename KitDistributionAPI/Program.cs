@@ -39,16 +39,17 @@ builder.Services
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            IssuerSigningKey =
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
     });
 
 builder.Services.AddAuthorization();
 
-// ⭐ CORS FOR APK + WEB
+// CORS — allow all (for APK & React)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
         policy
             .AllowAnyOrigin()
@@ -65,12 +66,14 @@ app.UseSwaggerUI();
 
 // Middleware order
 app.UseRouting();
-app.UseCors("AllowAll");
+
+app.UseCors("AllowFrontend");   // ✅ FIXED NAME
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-// Railway Port binding
+// Railway port binding
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Run($"http://0.0.0.0:{port}");
