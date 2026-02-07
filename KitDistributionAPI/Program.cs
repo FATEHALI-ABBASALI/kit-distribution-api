@@ -3,6 +3,7 @@ using KitDistributionAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,22 +11,26 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers
 builder.Services.AddControllers();
 
-// Swagger
+
+// ================= SWAGGER =================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Database
+
+// ================= DATABASE =================
 var connectionString = builder.Configuration.GetConnectionString("MySql");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 
-// Services
+
+// ================= SERVICES =================
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<QrCodeService>();
 
-// JWT Auth
+
+// ================= JWT AUTH =================
 var jwtKey = builder.Configuration["Jwt:Key"];
 
 builder.Services
@@ -34,13 +39,9 @@ builder.Services
     {
         opt.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
+            ValidateIssuer = false,
+            ValidateAudience = false,
             ValidateIssuerSigningKey = true,
-
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-
             IssuerSigningKey =
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
@@ -48,7 +49,8 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-// CORS → allow APK + web
+
+// ================= CORS (ALLOW ALL FOR APK + WEB) =================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -60,22 +62,26 @@ builder.Services.AddCors(options =>
     });
 });
 
+
 var app = builder.Build();   // ⭐ VERY IMPORTANT
 
-// Swagger
+
+// ================= SWAGGER =================
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// Middleware order
+
+// ================= MIDDLEWARE ORDER =================
 app.UseRouting();
 
-app.UseCors("AllowAll");     // ⭐ SAME NAME AS ABOVE
+app.UseCors("AllowAll");   // ⭐ must match policy name
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-// Railway port
+
+// ================= RAILWAY PORT =================
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Run($"http://0.0.0.0:{port}");
