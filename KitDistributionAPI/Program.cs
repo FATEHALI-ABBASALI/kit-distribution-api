@@ -3,56 +3,96 @@ using KitDistributionAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers
+// ================= CONTROLLERS =================
 builder.Services.AddControllers();
 
-// Swagger
+// ================= SWAGGER =================
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Kit Distribution API",
+        Version = "v1"
+    });
 
-// Database
+    // JWT support in Swagger
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter JWT token like: Bearer {your_token}"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
+
+// ================= DATABASE =================
 var connectionString = builder.Configuration.GetConnectionString("MySql");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+    options.UseMySql(
+        connectionString,
+        ServerVersion.AutoDetect(connectionString)
+    )
 );
 
-// Services
+// ================= SERVICES =================
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<QrCodeService>();
 
-// JWT Auth
+// ================= JWT AUTH =================
 var jwtKey = builder.Configuration["Jwt:Key"];
 
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(opt =>
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        opt.TokenValidationParameters = new TokenValidationParameters
+        options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey =
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey!)
+            )
         };
     });
 
 builder.Services.AddAuthorization();
 
-// CORS — allow all (for APK & React)
+// ================= CORS =================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .AllowAnyOrigin()
+            .WithOrigins(
+                "http://localhost:3000",
+                "https://localhost:3000"
+            )
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -60,20 +100,21 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Swagger
+// ================= SWAGGER =================
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// Middleware order
+// ================= MIDDLEWARE ORDER =================
 app.UseRouting();
 
-app.UseCors("AllowFrontend");   // ✅ FIXED NAME
+app.UseCors("AllowFrontend");
 
+// MUST be before Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-// Railway port binding
+// ================= PORT (Railway / Render / Fly.io) =================
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Run($"http://0.0.0.0:{port}");
