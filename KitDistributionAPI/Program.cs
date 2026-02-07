@@ -13,25 +13,21 @@ builder.Services.AddControllers();
 
 // ================= SWAGGER =================
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
+builder.Services.AddSwaggerGen(c =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Kit Distribution API",
-        Version = "v1"
-    });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Kit Distribution API", Version = "v1" });
 
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
         Type = SecuritySchemeType.Http,
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Enter JWT token like: Bearer {token}"
+        Description = "Enter: Bearer {token}"
     });
 
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
@@ -58,44 +54,39 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<QrCodeService>();
 
-// ================= JWT AUTH =================
+// ================= JWT =================
 var jwtKey = builder.Configuration["Jwt:Key"];
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey!)
-            )
-        };
-    });
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(jwtKey!)
+        )
+    };
+});
 
 builder.Services.AddAuthorization();
 
-// ================= CORS (ALLOW ALL FOR APK) =================
+// ================= CORS =================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
-    {
         policy.AllowAnyOrigin()
               .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
+              .AllowAnyMethod());
 });
 
 var app = builder.Build();
 
-// ================= SWAGGER =================
+// ================= MIDDLEWARE =================
 app.UseSwagger();
 app.UseSwaggerUI();
-
-// ================= MIDDLEWARE =================
-app.UseRouting();
 
 app.UseCors("AllowAll");
 
@@ -104,7 +95,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// ================= IMPORTANT FOR RAILWAY HTTPS =================
-app.Urls.Add("http://0.0.0.0:8080");
-
-app.Run();
+// ⭐ IMPORTANT FOR RAILWAY
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+app.Run($"http://0.0.0.0:{port}");
